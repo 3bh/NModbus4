@@ -14,10 +14,13 @@
     ///     Transport for Internet protocols.
     ///     Refined Abstraction - http://en.wikipedia.org/wiki/Bridge_Pattern
     /// </summary>
-    internal class ModbusIpTransport : ModbusTransport
+    public class ModbusIpTransport : ModbusTransport
     {
         private static readonly object _transactionIdLock = new object();
         private ushort _transactionId;
+
+        private bool _useTransactionId = true;
+        public bool UseTransactionId { get => _useTransactionId; set => _useTransactionId = value; }
 
         internal ModbusIpTransport(IStreamResource streamResource)
             : base(streamResource)
@@ -90,12 +93,19 @@
         /// </summary>
         internal virtual ushort GetNewTransactionId()
         {
-            lock (_transactionIdLock)
+            if (_useTransactionId)
             {
-                _transactionId = _transactionId == ushort.MaxValue ? (ushort)1 : ++_transactionId;
-            }
 
-            return _transactionId;
+                lock (_transactionIdLock)
+                {
+                    _transactionId = _transactionId == ushort.MaxValue ? (ushort)1 : ++_transactionId;
+                }
+
+                return _transactionId;
+            } else
+            {
+                return 0;
+            }
         }
 
         internal IModbusMessage CreateMessageAndInitializeTransactionId<T>(byte[] fullFrame)
